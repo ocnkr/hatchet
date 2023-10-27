@@ -16,11 +16,15 @@ NANOSEC_IN_SEC = 1000000000
 
 
 class NsightReader:
-    def __init__(self, nsight_trace, ncu_metrics=None):
-        fileObject = open(nsight_trace)
-        # nsight systems trace data
-        self.nsight_trace = list(DictReader(fileObject))
-        fileObject.close()
+    def __init__(self, nsight_trace=None, ncu_metrics=None):
+        if nsight_trace:
+            print("here")
+            fileObject = open(nsight_trace)
+            # nsight systems trace data
+            self.nsight_trace = list(DictReader(fileObject))
+            fileObject.close()
+        else:
+            self.nsight_trace = nsight_trace
         # nsight compute metrics file path (optional)
         self.ncu_metrics = ncu_metrics
         self.list_roots = []
@@ -153,10 +157,17 @@ class NsightReader:
         return graph
 
     def read(self):
-        graph = self.create_graph()
+        if self.nsight_trace:
+            graph = self.create_graph()
 
-        dataframe = pd.DataFrame(data=self.callpath_to_node_dicts.values())
-        dataframe.set_index(["node"], inplace=True)
-        dataframe.sort_index(inplace=True)
+            dataframe = pd.DataFrame(data=self.callpath_to_node_dicts.values())
+            dataframe.set_index(["node"], inplace=True)
+            dataframe.sort_index(inplace=True)
 
-        return hatchet.graphframe.GraphFrame(graph, dataframe, ["time"], ["time (inc)"])
+            return hatchet.graphframe.GraphFrame(
+                graph, dataframe, ["time"], ["time (inc)"]
+            )
+        else:
+            if self.ncu_metrics:
+                dataframe = pd.read_csv(self.ncu_metrics)
+                return dataframe
