@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 import pandas as pd
+import numpy as np
 
 import hatchet.graphframe
 from hatchet.node import Node
@@ -18,7 +19,6 @@ NANOSEC_IN_SEC = 1000000000
 class NsightReader:
     def __init__(self, nsight_trace=None, ncu_metrics=None):
         if nsight_trace:
-            print("here")
             fileObject = open(nsight_trace)
             # nsight systems trace data
             self.nsight_trace = list(DictReader(fileObject))
@@ -156,6 +156,23 @@ class NsightReader:
 
         return graph
 
+    def create_dummy_graph(self, dataframe):
+        dataframe = dataframe[dataframe["Kernel Name"].notna()].copy()
+        kernels = dataframe["Kernel Name"].tolist()
+        nodes = []
+        names = []
+        for kernel in kernels:
+            node = Node(Frame(name=kernel), None)
+            nodes.append(node)
+            names.append(kernel)
+
+        graph = Graph(nodes)
+        graph.enumerate_traverse()
+
+        dataframe.loc[:, "node"] = np.array(nodes)
+        dataframe.loc[:, "name"] = np.array(names)
+        return graph, dataframe
+
     def read(self):
         if self.nsight_trace:
             graph = self.create_graph()
@@ -170,4 +187,17 @@ class NsightReader:
         else:
             if self.ncu_metrics:
                 dataframe = pd.read_csv(self.ncu_metrics)
-                return dataframe
+                graph, dataframe = self.create_dummy_graph(dataframe)
+
+                dataframe.set_index("node", inplace=True)
+
+                dataframe["sm__cycles_elapsed.avg.per_second"] = dataframe[
+                    "sm__cycles_elapsed.avg.per_second"
+                ].astype(np.float64)
+
+                return hatchet.graphframe.GraphFrame(
+                    graph,
+                    dataframe,
+                    ["sm__cycles_elapsed.avg.per_second"],
+                    ["sm__cycles_elapsed.avg.per_second"],
+                )
