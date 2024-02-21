@@ -174,34 +174,34 @@ to construct the pivot table. It also provides filtering of nodes below a
 threshold value of the metric. The code block above for ``construct_from`` demonstrates
 ``multirun_analysis`` with default parameters (line 3) and its resulting table.
 
-**unify_multiple_graphframes**: The pivot table
-functionality of ``multirun_analysis`` helps generate quick summaries
-across a variety of groupings and metrics. However, fine-grained analysis
-tasks may require preserving those individual metrics and CCT topology in
-order to match them across CCT nodes. In these cases, unification of
-GraphFrames is needed so analyses can be done across calling contexts, even
-when the trees differ. Combining multiple large parallel profiles takes
-significant programming effort. This task is automated through the
-``unify_multiple_graphframes`` function, which takes multiple GraphFrames
-as inputs and updates each GraphFrame in place.
+.. **unify_multiple_graphframes**: The pivot table
+.. functionality of ``multirun_analysis`` helps generate quick summaries
+.. across a variety of groupings and metrics. However, fine-grained analysis
+.. tasks may require preserving those individual metrics and CCT topology in
+.. order to match them across CCT nodes. In these cases, unification of
+.. GraphFrames is needed so analyses can be done across calling contexts, even
+.. when the trees differ. Combining multiple large parallel profiles takes
+.. significant programming effort. This task is automated through the
+.. ``unify_multiple_graphframes`` function, which takes multiple GraphFrames
+.. as inputs and updates each GraphFrame in place.
 
 
-The ``unify_multiple_graphframes`` function creates a union graph object
-from all input GraphFrames from the collection of unique call paths. The
-updated GraphFrames point to this new object and the DataFrame of each is
-updated with the missing nodes. The operation ensures that all input
-GraphFrames are associated with the same unified graph and have individually
-updated DataFrames.
+.. The ``unify_multiple_graphframes`` function creates a union graph object
+.. from all input GraphFrames from the collection of unique call paths. The
+.. updated GraphFrames point to this new object and the DataFrame of each is
+.. updated with the missing nodes. The operation ensures that all input
+.. GraphFrames are associated with the same unified graph and have individually
+.. updated DataFrames.
 
-The image below illustrates how the GraphFrames
-are updated by unification. The resulting GraphFrames share the same graph
-while retaining their original metric values. Using this unified GraphFrames,
-node-level (calling context-dependent) metrics can be calculated, such as
-speedup and efficiency.
+.. The image below illustrates how the GraphFrames
+.. are updated by unification. The resulting GraphFrames share the same graph
+.. while retaining their original metric values. Using this unified GraphFrames,
+.. node-level (calling context-dependent) metrics can be calculated, such as
+.. speedup and efficiency.
 
-.. image:: images/chopper/unify_multiple_graphframes.pdf
-   :scale: 30 %
-   :align: right
+.. .. image:: images/chopper/unify_multiple_graphframes.pdf
+..    :scale: 30 %
+..    :align: right
 
 **speedup_efficiency**: Two commonly used metrics to
 determine the scalability of parallel codes are *speedup* and *efficiency*.
@@ -232,3 +232,23 @@ plot the results.
   gfs = perftool.GraphFrame.construct_from(datasets)
   efficiency = perftool.Chopper.speedup_efficiency(gfs, weak=True, efficiency=True)
   print(efficiency.sort_values("512.time", ascending=True))
+
+**correlation_analysis**: This function calculates
+the correlation between different performance metrics such as time, cache misses,
+and branch misses. It accepts a GraphFrame, list of metrics, and a method to
+calculate correlations (e.g., Pearson, Spearman, Kendall). It outputs the
+correlation matrix, where each row and column in the matrix represent a
+different metric, providing the correlation for every metric pair.
+
+**pairwise_correlation**: This function provides a more granular view compared to the previous function,
+examining the relationship of two metrics at the level of individual CCT nodes.
+It performs linear regression and fits a linear model to the
+data, assuming a linear relationship between two performance metrics. We made this
+assumption because these metrics typically exhibit a correlated relationship,
+where an increase in one metric is usually associated with an increase or decrease
+in the other (e.g., an increase in cache misses often leads to an increase in time spent).
+The CCT nodes that diverge significantly from the fitted line might imply unusual
+behavior within the program and aid users in identifying potential issues.
+This function calculates the values along the regression line
+and the distances of each CCT node from that line. It outputs a new GraphFrame,
+adding these calculated values as new columns in GraphFrame's DataFrame.
